@@ -1,0 +1,16 @@
+doctype html
+html
+  head
+    title TableView;
+    link(rel="stylesheet" href="style.css" type='text/css')
+  body
+    h1 LogIn
+    if(messages.error)
+      span= messages.error
+    form(action='/login', method='post')
+        p Email 
+            input(type='text', id='nameID', name='email' required)
+        p Password 
+            input(type='text', id='passwordID', name='password' required)
+        button(type='submit') Login
+    a(href='/register') Register
