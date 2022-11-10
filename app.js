@@ -8,22 +8,21 @@ const initializePassport = require('./passport-config');
 const flash = require('express-flash');
 const session  = require('express-session');
 
-const pool = require('./connectMySQL');
+let mysql = require('mysql2');
 
-// const result = async () => {
-//     const [data] = await pool.query('SELECT * FROM resultTable');
-//     console.log(data);
-// }
-// result();
+if(process.env.NODE_ENV !== 'production'){
+    require('dotenv').config();
+}
 
-// let users = [
-//     {
-//         id: '1667991204716',
-//         name: 'sam',
-//         email: 'sam@home',
-//         password: '$2b$10$1SjKh7ZIWoCyDf7.b3nWv.WSqBAHVzFGO2y6lc.nYJJPayW/bJocm'
-//     }
-// ];
+let pool = mysql.createPool( {
+    host: 'localhost',
+    user: 'root',
+    // password: 'MySQLpsw9027',
+    password: `${process.env.MySQL_PASSWORD}`,
+    // database: 'Web-scraper'
+    database: `${process.env.MySQL_DATABASE}`
+} ).promise()
+
 
 initializePassport(
     passport, 
@@ -61,11 +60,6 @@ app.set('view engine', 'pug');
 app.use( express.urlencoded({extended:true}));
 app.use( express.json() );
 app.use( express.static(__dirname + '/public') );
-
-if(process.env.NODE_ENV !== 'production'){
-    require('dotenv').config();
-}
-// require('dotenv').config();
 
 app.use( flash() );
 app.use( session({
