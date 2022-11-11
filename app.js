@@ -17,9 +17,7 @@ if(process.env.NODE_ENV !== 'production'){
 let pool = mysql.createPool( {
     host: 'localhost',
     user: 'root',
-    // password: 'MySQLpsw9027',
     password: `${process.env.MySQL_PASSWORD}`,
-    // database: 'Web-scraper'
     database: `${process.env.MySQL_DATABASE}`
 } ).promise()
 
