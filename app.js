@@ -162,6 +162,7 @@ app.get('/', (req, res) => {
     console.log(req.session);    
 });
 
+// app.get('/login', (req, res) => {
 app.get('/login', checkNotAuthenticated, (req, res) => {
     res.render('login');
 });
