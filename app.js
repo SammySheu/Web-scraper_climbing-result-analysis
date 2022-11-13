@@ -3,7 +3,8 @@ const app = express();
 
 const bcrypt = require('bcrypt');
 const passport = require('passport');
-const initializePassport = require('./passport-config');
+// const initializePassport = require('./passport-config');
+
 
 const flash = require('express-flash');
 const session  = require('express-session');
@@ -22,30 +23,6 @@ let pool = mysql.createPool( {
 } ).promise()
 
 
-initializePassport(
-    passport, 
-    email => {
-        const currentUser = async () => {
-            let sql = `SELECT * FROM resultTable where BINARY email='${email}'`
-            const found = await pool.query(sql);
-            // console.log(found[0][0]);
-            return found[0][0];
-        }
-        // console.log(currentUser[0][0]);
-        // return users.find(el => el.email === email)
-        return currentUser();
-    },
-    id => {
-        const currentUser = async () => {
-            let sql = `SELECT * FROM resultTable where BINARY id='${id}'`
-            const found = await pool.query(sql);
-            // console.log(found[0][0]);
-            return found[0][0];
-        }
-        return currentUser();
-        // return users.find(el => el.id === id)
-    }
-)
 
 const puppeteer = require('puppeteer');
 const fs = require('fs/promises');
@@ -59,23 +36,130 @@ app.use( express.urlencoded({extended:true}));
 app.use( express.json() );
 app.use( express.static(__dirname + '/public') );
 
+
+
 app.use( flash() );
-app.use( session({
-    secret: process.env.SESSION_SECRET, 
-    resave: false, 
+
+// ---------------------Set up Redis---------------------------------
+
+app.set('trust proxy', 1);
+
+const redis = require('redis');
+const connectRedis = require('connect-redis');
+let RedisStore = connectRedis(session)
+const redisClient = redis.createClient({
+    host: 'localhost',
+    port: 6379,
+    ttl: 260,
+    legacyMode: true
+})
+redisClient.connect()
+    .catch(console.error);
+
+redisClient.on('error', async function (err) {
+    console.log('Could not establish a connection with redis. ' + err);
+});
+redisClient.on('connect', async function (err) {
+    console.log('Connected to redis successfully');
+});
+
+app.use(session({
+    store: new RedisStore({ client: redisClient }),
+    secret: 'secret',
+    resave: false,
     saveUninitialized: false,
+    cookie: {
+        secure: false, // if true only transmit cookie over https
+        httpOnly: false, // if true prevent client side JS from reading the cookie 
+        maxAge: 1000 * 60 * 10 // session max age in miliseconds
+    }
 }))
+
+function getUserByEmail(email){
+    const currentUser = async () => {
+        let sql = `SELECT * FROM resultTable where BINARY email='${email}'`
+        const found = await pool.query(sql);
+        // console.log(found[0][0]);
+        return found[0][0];
+    }
+    return currentUser();
+}
+
+function getUserById(id){
+    const currentUser = async () => {
+        let sql = `SELECT * FROM resultTable where BINARY id='${id}'`
+        const found = await pool.query(sql);
+        // console.log(found[0][0]);
+        return found[0][0];
+    }
+    return currentUser();
+}
+// --------------------------------
+const LocalStrategy = require('passport-local').Strategy;
+
+const authenticateUser = async (email, password, done) => {
+    const userFromMySQL = await getUserByEmail(email);
+    if(userFromMySQL == null){
+        return done(null, false, {message: 'No user with that name'});
+    }
+    try{
+        if( await bcrypt.compare(password, userFromMySQL.password) ){
+            return done(null, userFromMySQL);
+        }
+        else {
+            return done(null, false, {message: 'Password incorrect'});
+        }
+    } catch(error){
+        return done(error);
+    }
+}
+
+passport.use(
+    new LocalStrategy( 
+        { usernameField: 'email'}, authenticateUser
+    )
+);
+
+// to store inside session
+passport.serializeUser( (user, done) => {
+    return done(null, user.id);
+})
+passport.deserializeUser( async (id, done) => {
+    return done(null, await getUserById(id));
+})
+
+
+
+// app.use( session({
+//     secret: process.env.SESSION_SECRET, 
+//     resave: false, 
+//     saveUninitialized: false,
+// }))
+
+
+
+
+// -----------------------------------------------------------------
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'pug');
+
+app.use( express.urlencoded({extended:true}));
+app.use( express.json() );
+app.use( express.static(__dirname + '/public') );
+
+
+app.use( flash() );
 
 app.use( passport.initialize() );
 app.use( passport.session() );
 
 
 
-app.get('/', async (req, res) => {
-    let sql = `SELECT * FROM resultTable where BINARY name='Sam'`
-    const currentUser = await pool.query(sql);
-    console.log(currentUser[0][0]);
-})
+
+
+app.get('/', (req, res) => {
+    console.log(req.session);    
+});
 
 app.get('/login', checkNotAuthenticated, (req, res) => {
     res.render('login');
@@ -98,11 +182,24 @@ app.get('/table', checkAuthenticated, async (req, res) => {
     }
 });
 
-app.post('/login', passport.authenticate('local', {
-    successRedirect: '/table', 
-    failureRedirect: '/login', 
-    failureFlash: true
-}));
+app.post('/login',
+    passport.authenticate('local', {
+            failureRedirect: '/login', 
+            failureFlash: true }),
+    (req, res) => {
+        const { email, password} = req.body;
+        const sess = req.session;
+        sess.email = email;
+        sess.password = password;
+        console.log(sess.email, sess.password);
+        return res.redirect('/table');
+    });
+
+app.post('/testSession', (req, res) => {
+    const sess = req.session;
+    console.log(req.session.user, req.session.password);
+    return res.send('sucess to store user information into session');
+})
 
 app.post('/register', checkNotAuthenticated, async (req, res) => {
     try{
@@ -128,10 +225,13 @@ app.post('/register', checkNotAuthenticated, async (req, res) => {
 });
 
 app.post('/logout', (req, res, next) => {
+    req.session.destroy(err => {
+        if (err) return console.log(err);
+    });
     req.logOut( (err) => {
         if (err) return next(err);
-        res.redirect('/login');
     });
+    return res.redirect('/login');
 })
 
 app.listen(3000, () => {
