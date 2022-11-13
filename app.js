@@ -42,14 +42,13 @@ app.use( flash() );
 
 // ---------------------Set up Redis---------------------------------
 
-app.set('trust proxy', 1);
+// app.set('trust proxy', 1);
 
 const redis = require('redis');
 const connectRedis = require('connect-redis');
 let RedisStore = connectRedis(session)
 const redisClient = redis.createClient({
-    url: 'rediss://red-cdoem8un6mpuqrt4oerg:AXX36hFYdUiWkCaIh0drlZeUP6NbeVzL@oregon-redis.render.com:6379',
-    // url: process.env.REDIS_URL,
+    url: process.env.REDIS_URL,
     // host: 'localhost',
     // port: 6379,
     // ttl: 260,
@@ -73,7 +72,7 @@ app.use(session({
     cookie: {
         secure: false, // if true only transmit cookie over https
         httpOnly: false, // if true prevent client side JS from reading the cookie 
-        maxAge: 1000 * 60 * 10 // session max age in miliseconds
+        maxAge: 1000 * 60 * 3 // session max age in miliseconds
     }
 }))
 
@@ -186,16 +185,19 @@ app.get('/table', checkAuthenticated, async (req, res) => {
 
 app.post('/login',
     passport.authenticate('local', {
+            successRedirect: '/table',
             failureRedirect: '/login', 
-            failureFlash: true }),
-    (req, res) => {
-        const { email, password} = req.body;
-        const sess = req.session;
-        sess.email = email;
-        sess.password = password;
-        // console.log(sess.email, sess.password);
-        return res.redirect('/table');
-    });
+            failureFlash: true })
+    // async (req, res) => {
+    //     const { email, password} = req.body;
+    //     const sess = req.session;
+    //     sess.email = email;
+    //     sess.password = password;
+    //     console.log(sess.email, sess.password);
+    //     // return res.end();
+    //     // return res.redirect('/table');
+    // }
+    );
 
 app.post('/testSession', (req, res) => {
     const sess = req.session;
