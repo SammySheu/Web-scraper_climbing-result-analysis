@@ -15,6 +15,8 @@ if(process.env.NODE_ENV !== 'production'){
     require('dotenv').config();
 }
 
+
+
 let pool = mysql.createPool( {
     host: 'localhost',
     user: 'root',
@@ -48,7 +50,7 @@ const redis = require('redis');
 const connectRedis = require('connect-redis');
 let RedisStore = connectRedis(session)
 const redisClient = redis.createClient({
-    url: process.env.REDIS_URL,
+    url: `${process.env.REDIS_URL}`,
     // host: 'localhost',
     // port: 6379,
     // ttl: 260,
