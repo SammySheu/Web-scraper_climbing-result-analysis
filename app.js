@@ -48,9 +48,11 @@ const redis = require('redis');
 const connectRedis = require('connect-redis');
 let RedisStore = connectRedis(session)
 const redisClient = redis.createClient({
-    host: 'localhost',
-    port: 6379,
-    ttl: 260,
+    url: 'rediss://red-cdoem8un6mpuqrt4oerg:AXX36hFYdUiWkCaIh0drlZeUP6NbeVzL@oregon-redis.render.com:6379',
+    // url: process.env.REDIS_URL,
+    // host: 'localhost',
+    // port: 6379,
+    // ttl: 260,
     legacyMode: true
 })
 redisClient.connect()
@@ -191,7 +193,7 @@ app.post('/login',
         const sess = req.session;
         sess.email = email;
         sess.password = password;
-        console.log(sess.email, sess.password);
+        // console.log(sess.email, sess.password);
         return res.redirect('/table');
     });
 
