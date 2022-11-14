@@ -8,8 +8,9 @@ const passport = require('passport');
 
 const flash = require('express-flash');
 const session  = require('express-session');
-
-let mysql = require('mysql2');
+const mysql = require('mysql2');
+// let mysql = require('mysql2');
+// const mysql = require('promise-mysql');
 
 if(process.env.NODE_ENV !== 'production'){
     require('dotenv').config();
@@ -17,14 +18,19 @@ if(process.env.NODE_ENV !== 'production'){
 
 
 
-let pool = mysql.createConnection( {
-    host: 'localhost',
+let con = mysql.createConnection( {
+    // host: 'localhost',
+    host: '34.105.86.101',
+    port: '3306',
     user: 'root',
     password: `${process.env.MySQL_PASSWORD}`,
     database: `${process.env.MySQL_DATABASE}`
-} ).promise()
+} ).promise();
+// con.connect();
 
-
+// pool.on('connect', async function (err) {
+//     console.log('Connected to redis successfully');
+// });
 
 const puppeteer = require('puppeteer');
 const fs = require('fs/promises');
@@ -74,15 +80,15 @@ app.use(session({
     cookie: {
         secure: false, // if true only transmit cookie over https
         httpOnly: false, // if true prevent client side JS from reading the cookie 
-        maxAge: 1000 * 60 * 3 // session max age in miliseconds
+        maxAge: 1000 * 60 * 3 // session max age in milliseconds
     }
 }))
 
 function getUserByEmail(email){
     const currentUser = async () => {
-        let sql = `SELECT * FROM resultTable where BINARY email='${email}'`
-        const found = await pool.query(sql);
-        // console.log(found[0][0]);
+        let sql = `SELECT * FROM userInformationTable where BINARY email='${email}'`
+        const found = await con.query(sql);
+        // console.log(found);
         return found[0][0];
     }
     return currentUser();
@@ -90,8 +96,8 @@ function getUserByEmail(email){
 
 function getUserById(id){
     const currentUser = async () => {
-        let sql = `SELECT * FROM resultTable where BINARY id='${id}'`
-        const found = await pool.query(sql);
+        let sql = `SELECT * FROM userInformationTable where BINARY id='${id}'`
+        const found = await con.query(sql);
         // console.log(found[0][0]);
         return found[0][0];
     }
@@ -205,7 +211,7 @@ app.post('/login',
 app.post('/testSession', (req, res) => {
     const sess = req.session;
     console.log(req.session.user, req.session.password);
-    return res.send('sucess to store user information into session');
+    return res.send('success to store user information into session');
 })
 
 app.post('/register', checkNotAuthenticated, async (req, res) => {
@@ -213,15 +219,12 @@ app.post('/register', checkNotAuthenticated, async (req, res) => {
         const id = Date.now().toString();
         const hashedPassword = await bcrypt.hash(req.body.registPassword, 10);
         //-------------------------Insert Data in MySQL-----------------
-            let sql = `INSERT INTO resultTable (id, name, email, password) VALUES ("${id}", "${req.body.registUser}", "${req.body.registEmail}", "${hashedPassword}")`
-            await pool.query(sql)
+        // let sql = `INSERT INTO userInformationTable (id, name, email, password) VALUES ("${id}", "${req.body.registUser}", "${req.body.registEmail}", "hello")`    
+        let sql = `INSERT INTO userInformationTable (id, name, email, password) VALUES ("${id}", "${req.body.registUser}", "${req.body.registEmail}", "${hashedPassword}")`
+            con.query(sql)
+            // console.log(answer);
             // console.log(sql);
-        //--------------------------------------------------------------
-        // users.push({
-        //     id, 
-        //     name: req.body.registUser,
-        //     email: req.body.registEmail,
-        //     password: hashedPassword,
+
         // })
     res.redirect('/login');
     }catch(err){
