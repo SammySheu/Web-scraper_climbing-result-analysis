@@ -17,7 +17,7 @@ if(process.env.NODE_ENV !== 'production'){
 
 
 
-let pool = mysql.createPool( {
+let pool = mysql.createConnection( {
     host: 'localhost',
     user: 'root',
     password: `${process.env.MySQL_PASSWORD}`,
