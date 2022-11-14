@@ -18,7 +18,7 @@ if(process.env.NODE_ENV !== 'production'){
 
 
 
-let con = mysql.createConnection( {
+let pool = mysql.createPool( {
     // host: 'localhost',
     host: '34.105.86.101',
     port: '3306',
@@ -87,7 +87,7 @@ app.use(session({
 function getUserByEmail(email){
     const currentUser = async () => {
         let sql = `SELECT * FROM userInformationTable where BINARY email='${email}'`
-        const found = await con.query(sql);
+        const found = await pool.query(sql);
         // console.log(found);
         return found[0][0];
     }
@@ -97,7 +97,7 @@ function getUserByEmail(email){
 function getUserById(id){
     const currentUser = async () => {
         let sql = `SELECT * FROM userInformationTable where BINARY id='${id}'`
-        const found = await con.query(sql);
+        const found = await pool.query(sql);
         // console.log(found[0][0]);
         return found[0][0];
     }
@@ -221,7 +221,7 @@ app.post('/register', checkNotAuthenticated, async (req, res) => {
         //-------------------------Insert Data in MySQL-----------------
         // let sql = `INSERT INTO userInformationTable (id, name, email, password) VALUES ("${id}", "${req.body.registUser}", "${req.body.registEmail}", "hello")`    
         let sql = `INSERT INTO userInformationTable (id, name, email, password) VALUES ("${id}", "${req.body.registUser}", "${req.body.registEmail}", "${hashedPassword}")`
-            con.query(sql)
+            pool.query(sql)
             // console.log(answer);
             // console.log(sql);
 
