@@ -17,7 +17,7 @@ if(process.env.NODE_ENV !== 'production'){
 }
 
 
-
+app.set('trust proxy', 1);
 let pool = mysql.createPool( {
     // host: 'localhost',
     host: '34.105.86.101',
@@ -50,7 +50,7 @@ app.use( flash() );
 
 // ---------------------Set up Redis---------------------------------
 
-// app.set('trust proxy', 1);
+
 
 const redis = require('redis');
 const connectRedis = require('connect-redis');
