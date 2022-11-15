@@ -8,7 +8,7 @@ const passport = require('passport');
 
 const flash = require('express-flash');
 const session  = require('express-session');
-const mysql = require('mysql2');
+const postgre = require('pg');
 // let mysql = require('mysql2');
 // const mysql = require('promise-mysql');
 
@@ -17,20 +17,25 @@ if(process.env.NODE_ENV !== 'production'){
 }
 
 
-app.set('trust proxy', 1);
-let pool = mysql.createPool( {
-    // host: 'localhost',
-    host: '34.105.86.101',
-    port: '3306',
-    user: 'root',
-    password: `${process.env.MySQL_PASSWORD}`,
-    database: `${process.env.MySQL_DATABASE}`
-} ).promise();
-// con.connect();
+// app.set('trust proxy', 1);
+let pool = new postgre.Pool( {
+    url: `${process.env.POSTGRESQL_INTERNAL_URL}`,
+    database: 'userinf',
+} )
 
-// pool.on('connect', async function (err) {
-//     console.log('Connected to redis successfully');
-// });
+
+
+// pool.connect();
+
+pool.on('connect', async function (err) {
+    console.log('Connected to postgreSQL successfully');
+});
+
+// let quote = "DELETE FROM userinftable WHERE name='samsheu1997'; ";
+// let quote = 'SELECT * FROM userinftable';
+// const ttt = pool.query(quote)
+//     .then(ttt=> console.log(ttt));
+// console.log(ttt);
 
 const puppeteer = require('puppeteer');
 const fs = require('fs/promises');
@@ -56,7 +61,7 @@ const redis = require('redis');
 const connectRedis = require('connect-redis');
 let RedisStore = connectRedis(session)
 const redisClient = redis.createClient({
-    url: `${process.env.REDIS_URL}`,
+    url: `${process.env.REDIS_INTERNAL_URL}`,
     // host: 'localhost',
     // port: 6379,
     // ttl: 260,
@@ -86,20 +91,20 @@ app.use(session({
 
 function getUserByEmail(email){
     const currentUser = async () => {
-        let sql = `SELECT * FROM userInformationTable where BINARY email='${email}'`
+        let sql = `SELECT * FROM userinftable WHERE email='${email}';`;
         const found = await pool.query(sql);
-        // console.log(found);
-        return found[0][0];
+        // console.log(found.rows[0]);
+        return found.rows[0];
     }
     return currentUser();
 }
 
 function getUserById(id){
     const currentUser = async () => {
-        let sql = `SELECT * FROM userInformationTable where BINARY id='${id}'`
+        let sql = `SELECT * FROM userinftable WHERE id='${id}';`;
         const found = await pool.query(sql);
-        // console.log(found[0][0]);
-        return found[0][0];
+        // console.log(found.rows[0]);
+        return found.rows[0];
     }
     return currentUser();
 }
@@ -220,8 +225,9 @@ app.post('/register', checkNotAuthenticated, async (req, res) => {
         const hashedPassword = await bcrypt.hash(req.body.registPassword, 10);
         //-------------------------Insert Data in MySQL-----------------
         // let sql = `INSERT INTO userInformationTable (id, name, email, password) VALUES ("${id}", "${req.body.registUser}", "${req.body.registEmail}", "hello")`    
-        let sql = `INSERT INTO userInformationTable (id, name, email, password) VALUES ("${id}", "${req.body.registUser}", "${req.body.registEmail}", "${hashedPassword}")`
-            pool.query(sql)
+        let sql = `INSERT INTO userinftable (id, name, email, password) VALUES ('${id}', '${req.body.registUser}', '${req.body.registEmail}', '${hashedPassword}');`;
+        console.log(sql);    
+        await pool.query(sql)
             // console.log(answer);
             // console.log(sql);
 

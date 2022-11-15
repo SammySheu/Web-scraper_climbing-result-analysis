@@ -27,6 +27,7 @@
     "nodemon": "^2.0.20",
     "passport": "^0.4.0",
     "passport-local": "^1.0.0",
+    "pg": "^8.8.0",
     "promise-mysql": "^5.2.0",
     "pug": "^3.0.2",
     "puppeteer": "^19.2.2",
